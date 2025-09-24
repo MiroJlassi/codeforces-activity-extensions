@@ -16,14 +16,16 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Create ZIP
+      - name: Create ZIP of Extension folder
         run: |
           mkdir -p release
-          zip -r release/codeforces-activity-extension.zip . -x "*.git*" "*.github*" "*.DS_Store"
+          cd Extension
+          zip -r ../release/codeforces-activity-extension.zip . -x "*.git*" "*.github*" "*.DS_Store"
 
       - name: Create GitHub Release and Upload Asset
         id: create_release
