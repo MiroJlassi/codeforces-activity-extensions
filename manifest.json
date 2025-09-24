@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Codeforces Activity Heatmap",
+  "version": "1.0",
+  "description": "Shows GitHub-style activity heatmap on Codeforces profiles",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://codeforces.com/profile/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ],
+  "host_permissions": [
+    "https://codeforces.com/api/user.status*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
