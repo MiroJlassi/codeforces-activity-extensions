@@ -10,32 +10,35 @@ on:
         description: "Release note"
         required: true
 
+permissions:
+  contents: write
+  metadata: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-    - name: Create ZIP
-      run: |
-        mkdir release
-        zip -r release/codeforces-activity-extension.zip . -x "*.git*" "*.github*" "*.DS_Store"
+      - name: Create ZIP
+        run: |
+          mkdir -p release
+          zip -r release/codeforces-activity-extension.zip . -x "*.git*" "*.github*" "*.DS_Store"
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.event.inputs.version }}
-        name: ${{ github.event.inputs.version }}
-        body: ${{ github.event.inputs.release_note }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.inputs.version }}
+          body: ${{ github.event.inputs.release_note }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload release asset
-      uses: softprops/action-gh-release@v1
-      with:
-        files: release/codeforces-activity-extension.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/codeforces-activity-extension.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
