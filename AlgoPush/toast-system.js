@@ -37,6 +37,8 @@ class ToastSystem {
                 transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(255, 255, 255, 0.2);
+                display: flex;
+                align-items: center;
             }
 
             .algopush-toast.show {
@@ -61,13 +63,39 @@ class ToastSystem {
             }
 
             .algopush-toast-icon {
-                display: inline-block;
-                margin-right: 8px;
-                font-size: 16px;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                flex-shrink: 0;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+            }
+
+            .algopush-toast.success .algopush-toast-icon {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .algopush-toast.error .algopush-toast-icon {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .algopush-toast.warning .algopush-toast-icon {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .algopush-toast.info .algopush-toast-icon {
+                background: rgba(255, 255, 255, 0.25);
             }
 
             .algopush-toast-content {
-                display: inline-block;
+                flex: 1;
+                font-weight: 500;
             }
 
             @keyframes slideInRight {
@@ -146,10 +174,10 @@ class ToastSystem {
 
     getIconForType(type) {
         const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: '📘'
+            success: '✓',
+            error: '✗',
+            warning: '!',
+            info: 'i'
         };
         return icons[type] || icons.info;
     }
