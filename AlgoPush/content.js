@@ -21,7 +21,6 @@ class AlgoPushManager {
             this.setupEventListeners();
             this.setupFileHandler();
             console.log('🚀 AlgoPush initialized successfully');
-            window.showInfo('AlgoPush is ready! 🚀', 2000);
         } catch (error) {
             console.error('Failed to initialize AlgoPush:', error);
             window.showError(`Failed to initialize: ${window.formatErrorMessage(error)}`);
