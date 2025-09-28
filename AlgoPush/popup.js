@@ -1,7 +1,3 @@
-/**
- * AlgoPush Popup Script - Enhanced with modern UI and better UX
- */
-
 class AlgoPushPopup {
     constructor() {
         this.elements = {};
@@ -19,51 +15,42 @@ class AlgoPushPopup {
 
     setupElements() {
         this.elements = {
-            // Form elements
             tokenInput: document.getElementById('token'),
             ownerInput: document.getElementById('owner'),
             repoInput: document.getElementById('repo'),
             branchInput: document.getElementById('branch'),
             
-            // Buttons
             saveButton: document.getElementById('saveButton'),
             clearButton: document.getElementById('clearButton'),
             testButton: document.getElementById('testButton'),
             toggleToken: document.getElementById('toggleToken'),
             
-            // Status elements
             statusCard: document.getElementById('statusCard'),
             statusIndicator: document.getElementById('statusIndicator'),
             statusText: document.getElementById('statusText'),
             
-            // Form and container
             configForm: document.getElementById('configForm'),
             toastContainer: document.getElementById('toastContainer')
         };
     }
 
     setupEventListeners() {
-        // Form submission
         this.elements.configForm.addEventListener('submit', this.handleSave.bind(this));
         
-        // Button clicks
         this.elements.clearButton.addEventListener('click', this.handleClear.bind(this));
         this.elements.testButton.addEventListener('click', this.handleTest.bind(this));
         this.elements.toggleToken.addEventListener('click', this.toggleTokenVisibility.bind(this));
         
-        // Input validation
         [this.elements.tokenInput, this.elements.ownerInput, this.elements.repoInput]
             .forEach(input => {
                 input.addEventListener('input', this.validateForm.bind(this));
                 input.addEventListener('blur', this.validateForm.bind(this));
             });
 
-        // Real-time validation feedback
         this.elements.tokenInput.addEventListener('input', this.validateToken.bind(this));
         this.elements.ownerInput.addEventListener('input', this.validateOwner.bind(this));
         this.elements.repoInput.addEventListener('input', this.validateRepo.bind(this));
 
-        // Auto-save on blur for a better UX
         [this.elements.tokenInput, this.elements.ownerInput, this.elements.repoInput, this.elements.branchInput]
             .forEach(input => {
                 input.addEventListener('blur', this.autoSave.bind(this));
@@ -80,7 +67,6 @@ class AlgoPushPopup {
                     branch: data.branch || 'main'
                 };
                 
-                // Populate form fields
                 this.elements.tokenInput.value = this.config.token;
                 this.elements.ownerInput.value = this.config.owner;
                 this.elements.repoInput.value = this.config.repo;
@@ -102,7 +88,6 @@ class AlgoPushPopup {
         this.elements.saveButton.disabled = !isValid;
         this.elements.testButton.disabled = !isValid;
         
-        // Update visual feedback
         this.updateInputStates();
         
         return isValid;
@@ -123,19 +108,16 @@ class AlgoPushPopup {
     }
 
     validateToken(value = this.elements.tokenInput.value) {
-        // Basic GitHub token validation (starts with ghp_, gho_, ghu_, ghs_, or ghr_)
         const tokenRegex = /^gh[pous]_[A-Za-z0-9_]{36,255}$/;
         return tokenRegex.test(value);
     }
 
     validateOwner(value = this.elements.ownerInput.value) {
-        // GitHub username validation
         const usernameRegex = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
         return usernameRegex.test(value);
     }
 
     validateRepo(value = this.elements.repoInput.value) {
-        // Repository name validation
         const repoRegex = /^[a-zA-Z0-9._-]+$/;
         return value.length > 0 && value.length <= 100 && repoRegex.test(value);
     }
@@ -155,10 +137,8 @@ class AlgoPushPopup {
     }
 
     setConnectionStatus(type, message) {
-        // Remove all status classes
         this.elements.statusCard.className = 'status-card';
         
-        // Add new status class
         if (type === 'connected') {
             this.elements.statusCard.classList.add('connected');
         } else if (type === 'error') {
@@ -294,7 +274,6 @@ class AlgoPushPopup {
         const isPassword = this.elements.tokenInput.type === 'password';
         this.elements.tokenInput.type = isPassword ? 'text' : 'password';
         
-        // Update icon (optional - you could change the SVG here)
         const icon = this.elements.toggleToken.querySelector('.eye-icon');
         icon.style.opacity = isPassword ? '0.7' : '1';
     }
@@ -310,11 +289,9 @@ class AlgoPushPopup {
                 branch: this.elements.branchInput.value.trim() || 'main'
             };
 
-            // Only save if something changed
             if (JSON.stringify(currentConfig) !== JSON.stringify(this.config)) {
                 await this.saveConfiguration(currentConfig);
                 this.config = currentConfig;
-                // Silent save - no toast notification for auto-save
             }
         } catch (error) {
             console.error('Auto-save failed:', error);
@@ -344,7 +321,6 @@ class AlgoPushPopup {
             button.disabled = false;
         }
         
-        // Re-validate form to update button states
         if (!loading) {
             this.validateForm();
         }
@@ -357,10 +333,8 @@ class AlgoPushPopup {
         
         this.elements.toastContainer.appendChild(toast);
         
-        // Animate in
         setTimeout(() => toast.classList.add('show'), 100);
         
-        // Remove after duration
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
@@ -368,12 +342,10 @@ class AlgoPushPopup {
     }
 }
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.algoPushPopup = new AlgoPushPopup();
 });
 
-// Add CSS for input validation states
 const validationStyles = document.createElement('style');
 validationStyles.textContent = `
     .input-field.invalid {

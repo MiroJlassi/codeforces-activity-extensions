@@ -1,7 +1,3 @@
-/**
- * File handling module for AlgoPush extension
- */
-
 window.FileHandler = class FileHandler {
     constructor() {
         this.storedFile = null;
@@ -12,10 +8,6 @@ window.FileHandler = class FileHandler {
         };
     }
 
-    /**
-     * Initialize file handler with file input element
-     * @param {HTMLInputElement} fileInput - The file input element
-     */
     init(fileInput) {
         if (!fileInput) {
             throw new Error('File input element is required');
@@ -52,7 +44,6 @@ window.FileHandler = class FileHandler {
     }
 
     processFile(file) {
-        // Validate file
         const validation = this.validateFile(file);
         if (!validation.isValid) {
             window.showError(`File validation failed: ${validation.error}`);
@@ -75,12 +66,10 @@ window.FileHandler = class FileHandler {
     }
 
     validateFile(file) {
-        // Check file size (max 1MB)
         if (file.size > 1024 * 1024) {
             return { isValid: false, error: 'File too large (max 1MB)' };
         }
 
-        // Check if it's a text file
         if (!this.isTextFile(file)) {
             return { isValid: false, error: 'Please select a text/code file' };
         }
@@ -102,14 +91,12 @@ window.FileHandler = class FileHandler {
             '.kt', '.swift', '.cs', '.vb', '.pl', '.sh'
         ];
 
-        // Check MIME type
         if (file.type) {
             if (textTypes.some(type => file.type.startsWith(type))) {
                 return true;
             }
         }
 
-        // Check file extension
         const fileName = file.name.toLowerCase();
         return textExtensions.some(ext => fileName.endsWith(ext));
     }
@@ -124,10 +111,6 @@ window.FileHandler = class FileHandler {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    /**
-     * Read file content as text
-     * @returns {Promise<string>} File content
-     */
     async readFileContent() {
         if (!this.storedFile) {
             throw new Error('No file selected');
@@ -148,10 +131,6 @@ window.FileHandler = class FileHandler {
         });
     }
 
-    /**
-     * Get stored file information
-     * @returns {Object|null} File information or null
-     */
     getFileInfo() {
         if (!this.storedFile) return null;
 
@@ -165,11 +144,6 @@ window.FileHandler = class FileHandler {
         };
     }
 
-    /**
-     * Add callback for file events
-     * @param {string} event - Event name ('onFileSelected' or 'onFileError')
-     * @param {Function} callback - Callback function
-     */
     on(event, callback) {
         if (this.callbacks[event]) {
             this.callbacks[event].push(callback);
@@ -182,9 +156,6 @@ window.FileHandler = class FileHandler {
         }
     }
 
-    /**
-     * Clear stored file
-     */
     clear() {
         this.storedFile = null;
         if (this.fileInput) {
@@ -192,10 +163,6 @@ window.FileHandler = class FileHandler {
         }
     }
 
-    /**
-     * Check if file is selected
-     * @returns {boolean} True if file is selected
-     */
     hasFile() {
         return this.storedFile !== null;
     }

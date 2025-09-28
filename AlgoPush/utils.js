@@ -1,8 +1,3 @@
-/**
- * Utility functions and constants for AlgoPush extension
- */
-
-// Constants
 window.CONFIG = {
     TOAST_DURATION: {
         SHORT: 2000,
@@ -20,19 +15,11 @@ window.SELECTORS = {
     PROBLEM_TITLE: ".problem-statement .title"
 };
 
-/**
- * Extracts contest ID from the current URL
- * @returns {string} Contest ID or 'unknown_contest'
- */
 window.getContestId = function() {
     const match = window.location.pathname.match(/\b\d{4}\b/);
     return match ? match[0] : "unknown_contest";
 };
 
-/**
- * Extracts problem details from the current page
- * @returns {Object|null} Problem details or null if extraction fails
- */
 window.getProblemDetails = function() {
     try {
         const contestId = window.getContestId();
@@ -51,39 +38,19 @@ window.getProblemDetails = function() {
     }
 };
 
-/**
- * Gets file extension from filename
- * @param {string} filename - The filename
- * @returns {string} File extension or 'txt'
- */
 window.getFileExtension = function(filename) {
     const parts = filename.split(".");
     return parts.length > 1 ? parts.pop() : "txt";
 };
 
-/**
- * Sanitizes filename for safe usage
- * @param {string} filename - Original filename
- * @returns {string} Sanitized filename
- */
 window.sanitizeFilename = function(filename) {
     return filename.replace(/[^\w\-\.]/g, "_");
 };
 
-/**
- * Creates a delay promise
- * @param {number} ms - Milliseconds to delay
- * @returns {Promise} Promise that resolves after delay
- */
 window.delay = function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-/**
- * Validates GitHub configuration
- * @param {Object} config - GitHub configuration
- * @returns {Object} Validation result
- */
 window.validateGitHubConfig = function(config) {
     const errors = [];
     
@@ -97,11 +64,6 @@ window.validateGitHubConfig = function(config) {
     };
 };
 
-/**
- * Formats error message for display
- * @param {Error} error - Error object
- * @returns {string} Formatted error message
- */
 window.formatErrorMessage = function(error) {
     if (error.message) return error.message;
     if (typeof error === 'string') return error;

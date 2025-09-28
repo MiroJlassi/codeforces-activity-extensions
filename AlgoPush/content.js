@@ -1,11 +1,3 @@
-/**
- * AlgoPush Chrome Extension - Main Content Script
- * Automatically pushes Codeforces solutions to GitHub
- */
-
-// Since Chrome extensions don't support ES6 modules in content scripts,
-// we'll use the global objects created by the other scripts
-
 class AlgoPushManager {
     constructor() {
         this.fileHandler = new window.FileHandler();
@@ -38,9 +30,8 @@ class AlgoPushManager {
     }
 
     async waitForDependencies() {
-        // Wait for all dependencies to be loaded
-        const maxWait = 5000; // 5 seconds
-        const checkInterval = 100; // 100ms
+        const maxWait = 5000;
+        const checkInterval = 100;
         let waited = 0;
 
         return new Promise((resolve, reject) => {
@@ -83,7 +74,6 @@ class AlgoPushManager {
 
         this.fileHandler.init(fileInput);
 
-        // Set up file handler callbacks
         this.fileHandler.on('onFileSelected', (fileInfo) => {
             console.log('File selected:', fileInfo);
             this.onFileSelected(fileInfo);
@@ -103,7 +93,6 @@ class AlgoPushManager {
     }
 
     displayFileInfo(fileInfo) {
-        // Create or update file info display
         let infoDisplay = document.getElementById('algopush-file-info');
         if (!infoDisplay) {
             infoDisplay = this.createFileInfoDisplay();
@@ -126,12 +115,10 @@ class AlgoPushManager {
         display.id = 'algopush-file-info';
         display.className = 'algopush-file-info';
         
-        // Add styles
         if (!document.getElementById('algopush-file-info-styles')) {
             this.injectFileInfoStyles();
         }
 
-        // Insert after file input
         const fileInput = document.querySelector(window.SELECTORS?.FILE_INPUT || "input[name='sourceFile']");
         if (fileInput && fileInput.parentNode) {
             fileInput.parentNode.insertBefore(display, fileInput.nextSibling);
@@ -195,14 +182,12 @@ class AlgoPushManager {
         }
 
         if (!this.fileHandler.hasFile()) {
-            // Let the original form submission happen
             return;
         }
 
         this.isProcessing = true;
 
         try {
-            // Test GitHub connection first
             window.showInfo('🔄 Testing GitHub connection...', 2000);
             const connectionTest = await this.githubAPI.testConnection();
             
@@ -212,7 +197,6 @@ class AlgoPushManager {
 
             window.showSuccess('✅ GitHub connection verified', 1500);
 
-            // Read file content
             window.showInfo('📖 Reading file content...', 1500);
             const content = await this.fileHandler.readFileContent();
             
@@ -220,15 +204,12 @@ class AlgoPushManager {
                 throw new Error('File is empty');
             }
 
-            // Push to GitHub
             const fileInfo = this.fileHandler.getFileInfo();
             await this.githubAPI.pushSolution(content, fileInfo.name);
 
-            // Submit the form
             console.log('✅ Push complete. Submitting form...');
             window.showSuccess('✅ Push complete! Submitting...', 2000);
             
-            // Small delay to show success message
             setTimeout(() => {
                 event.target.closest('form').submit();
             }, 1000);
@@ -237,7 +218,6 @@ class AlgoPushManager {
             console.error('AlgoPush failed:', error);
             window.showError(`AlgoPush failed: ${window.formatErrorMessage(error)}`, 5000);
             
-            // Still submit the form even if GitHub push fails
             setTimeout(() => {
                 event.target.closest('form').submit();
             }, 2000);
@@ -246,7 +226,6 @@ class AlgoPushManager {
         }
     }
 
-    // Public methods for debugging
     getFileInfo() {
         return this.fileHandler.getFileInfo();
     }
@@ -260,7 +239,6 @@ class AlgoPushManager {
     }
 }
 
-// Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.algoPush = new AlgoPushManager();
@@ -269,7 +247,6 @@ if (document.readyState === 'loading') {
     window.algoPush = new AlgoPushManager();
 }
 
-// Global error handler
 window.addEventListener('error', (event) => {
     if (event.error && event.error.message && event.error.message.includes('AlgoPush')) {
         console.error('AlgoPush global error:', event.error);

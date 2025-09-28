@@ -1,7 +1,3 @@
-/**
- * GitHub API integration module for AlgoPush extension
- */
-
 window.GitHubAPI = class GitHubAPI {
     constructor() {
         this.config = null;
@@ -9,10 +5,6 @@ window.GitHubAPI = class GitHubAPI {
         this.rateLimitReset = null;
     }
 
-    /**
-     * Get GitHub configuration from storage
-     * @returns {Promise<Object>} GitHub configuration
-     */
     async getConfig() {
         return new Promise((resolve) => {
             chrome.storage.local.get(["token", "owner", "repo", "branch"], (data) => {
@@ -28,21 +20,11 @@ window.GitHubAPI = class GitHubAPI {
         });
     }
 
-    /**
-     * Validate GitHub configuration
-     * @returns {Promise<Object>} Validation result
-     */
     async validateConfig() {
         const config = await this.getConfig();
         return window.validateGitHubConfig(config);
     }
 
-    /**
-     * Make authenticated request to GitHub API
-     * @param {string} endpoint - API endpoint
-     * @param {Object} options - Request options
-     * @returns {Promise<Object>} API response
-     */
     async makeRequest(endpoint, options = {}) {
         if (!this.config) {
             await this.getConfig();
@@ -67,7 +49,6 @@ window.GitHubAPI = class GitHubAPI {
         try {
             const response = await fetch(url, mergedOptions);
             
-            // Update rate limit info
             this.rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
             this.rateLimitReset = response.headers.get('X-RateLimit-Reset');
 
@@ -83,11 +64,6 @@ window.GitHubAPI = class GitHubAPI {
         }
     }
 
-    /**
-     * Get the latest commit SHA for a branch
-     * @param {string} branch - Branch name
-     * @returns {Promise<string>} Commit SHA
-     */
     async getLatestCommitSha(branch = null) {
         const targetBranch = branch || this.config.branch;
         const endpoint = `/repos/${this.config.owner}/${this.config.repo}/git/refs/heads/${targetBranch}`;
@@ -100,28 +76,18 @@ window.GitHubAPI = class GitHubAPI {
         return ref.object.sha;
     }
 
-    /**
-     * Get commit details
-     * @param {string} sha - Commit SHA
-     * @returns {Promise<Object>} Commit details
-     */
     async getCommit(sha) {
         const endpoint = `/repos/${this.config.owner}/${this.config.repo}/git/commits/${sha}`;
         return await this.makeRequest(endpoint);
     }
 
-    /**
-     * Create a blob
-     * @param {string} content - File content
-     * @returns {Promise<string>} Blob SHA
-     */
     async createBlob(content) {
         const endpoint = `/repos/${this.config.owner}/${this.config.repo}/git/blobs`;
         
         const response = await this.makeRequest(endpoint, {
             method: 'POST',
             body: JSON.stringify({
-                content: btoa(unescape(encodeURIComponent(content))), // Handle Unicode properly
+                content: btoa(unescape(encodeURIComponent(content))),
                 encoding: 'base64'
             })
         });
@@ -133,12 +99,6 @@ window.GitHubAPI = class GitHubAPI {
         return response.sha;
     }
 
-    /**
-     * Create a tree
-     * @param {string} baseTreeSha - Base tree SHA
-     * @param {Array} files - Array of file objects
-     * @returns {Promise<string>} Tree SHA
-     */
     async createTree(baseTreeSha, files) {
         const endpoint = `/repos/${this.config.owner}/${this.config.repo}/git/trees`;
         
@@ -164,13 +124,6 @@ window.GitHubAPI = class GitHubAPI {
         return response.sha;
     }
 
-    /**
-     * Create a commit
-     * @param {string} message - Commit message
-     * @param {string} treeSha - Tree SHA
-     * @param {Array} parentShas - Parent commit SHAs
-     * @returns {Promise<string>} Commit SHA
-     */
     async createCommit(message, treeSha, parentShas) {
         const endpoint = `/repos/${this.config.owner}/${this.config.repo}/git/commits`;
         
@@ -190,12 +143,6 @@ window.GitHubAPI = class GitHubAPI {
         return response.sha;
     }
 
-    /**
-     * Update reference (branch)
-     * @param {string} branch - Branch name
-     * @param {string} commitSha - Commit SHA
-     * @returns {Promise<void>}
-     */
     async updateRef(branch, commitSha) {
         const endpoint = `/repos/${this.config.owner}/${this.config.repo}/git/refs/heads/${branch}`;
         
@@ -207,11 +154,6 @@ window.GitHubAPI = class GitHubAPI {
         });
     }
 
-    /**
-     * Generate file path based on problem details
-     * @param {string} filename - Original filename
-     * @returns {string} Generated file path
-     */
     generateFilePath(filename) {
         const details = window.getProblemDetails();
         if (!details) {
@@ -223,15 +165,8 @@ window.GitHubAPI = class GitHubAPI {
         return `${details.contestId}/${safeName}`;
     }
 
-    /**
-     * Push solution to GitHub
-     * @param {string} content - File content
-     * @param {string} filename - Original filename
-     * @returns {Promise<void>}
-     */
     async pushSolution(content, filename) {
         try {
-            // Validate configuration
             const validation = await this.validateConfig();
             if (!validation.isValid) {
                 throw new Error(`Configuration invalid: ${validation.errors.join(', ')}`);
@@ -243,27 +178,21 @@ window.GitHubAPI = class GitHubAPI {
 
             window.showInfo('🚀 Pushing solution to GitHub...', 3000);
 
-            // Get latest commit SHA
             const latestCommitSha = await this.getLatestCommitSha();
             
-            // Get commit details for tree SHA
             const commit = await this.getCommit(latestCommitSha);
             const baseTreeSha = commit.tree.sha;
 
-            // Create blob
             const blobSha = await this.createBlob(content);
 
-            // Create tree
             const treeSha = await this.createTree(baseTreeSha, [{
                 path: filePath,
                 blobSha: blobSha
             }]);
 
-            // Create commit
             const commitMessage = this.generateCommitMessage(filePath);
             const newCommitSha = await this.createCommit(commitMessage, treeSha, [latestCommitSha]);
 
-            // Update reference
             await this.updateRef(this.config.branch, newCommitSha);
 
             const successMessage = `✅ Solution pushed successfully 🚀`;
@@ -278,11 +207,6 @@ window.GitHubAPI = class GitHubAPI {
         }
     }
 
-    /**
-     * Generate commit message
-     * @param {string} filePath - File path
-     * @returns {string} Commit message
-     */
     generateCommitMessage(filePath) {
         const details = window.getProblemDetails();
         const timestamp = new Date().toISOString();
@@ -294,10 +218,6 @@ window.GitHubAPI = class GitHubAPI {
         }
     }
 
-    /**
-     * Test GitHub connection
-     * @returns {Promise<Object>} Connection test result
-     */
     async testConnection() {
         try {
             const validation = await this.validateConfig();
@@ -305,7 +225,6 @@ window.GitHubAPI = class GitHubAPI {
                 return { success: false, error: validation.errors.join(', ') };
             }
 
-            // Test by getting repo info
             const endpoint = `/repos/${this.config.owner}/${this.config.repo}`;
             const repoInfo = await this.makeRequest(endpoint);
 
@@ -323,10 +242,6 @@ window.GitHubAPI = class GitHubAPI {
         }
     }
 
-    /**
-     * Get rate limit status
-     * @returns {Object} Rate limit info
-     */
     getRateLimit() {
         return {
             remaining: this.rateLimitRemaining,

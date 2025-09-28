@@ -1,7 +1,3 @@
-/**
- * Toast notification system for AlgoPush extension
- */
-
 class ToastSystem {
     constructor() {
         this.container = null;
@@ -113,21 +109,13 @@ class ToastSystem {
         document.body.appendChild(this.container);
     }
 
-    /**
-     * Shows a toast notification
-     * @param {string} message - The message to display
-     * @param {string} type - Toast type: 'success', 'error', 'info', 'warning'
-     * @param {number} duration - Duration in milliseconds
-     */
     async show(message, type = 'info', duration = window.CONFIG?.TOAST_DURATION?.MEDIUM || 3000) {
         const toast = this.createToast(message, type);
         this.container.appendChild(toast);
 
-        // Animate in
         await window.delay(50);
         toast.classList.add("show");
 
-        // Auto-remove after duration
         setTimeout(async () => {
             await this.hide(toast);
         }, duration);
@@ -150,7 +138,7 @@ class ToastSystem {
 
     async hide(toast) {
         toast.classList.remove("show");
-        await window.delay(400); // Wait for animation
+        await window.delay(400);
         if (toast.parentNode) {
             toast.remove();
         }
@@ -166,7 +154,6 @@ class ToastSystem {
         return icons[type] || icons.info;
     }
 
-    // Convenience methods
     success(message, duration) {
         return this.show(message, 'success', duration);
     }
@@ -184,10 +171,8 @@ class ToastSystem {
     }
 }
 
-// Create singleton instance
 const toastSystem = new ToastSystem();
 
-// Export convenience functions globally
 window.showToast = (message, type, duration) => toastSystem.show(message, type, duration);
 window.showSuccess = (message, duration) => toastSystem.success(message, duration);
 window.showError = (message, duration) => toastSystem.error(message, duration);
