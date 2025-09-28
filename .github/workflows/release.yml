@@ -9,6 +9,13 @@ on:
       release_note:
         description: "Release note"
         required: true
+      package:
+        description: "Which package to release? (cf-activity-logger or algo-push)"
+        required: true
+        type: choice
+        options:
+          - cf-activity-logger
+          - algo-push
 
 permissions:
   contents: write
@@ -21,11 +28,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Create ZIP of Extension folder
+      - name: Set package variables
+        id: vars
+        run: |
+          if [[ "${{ github.event.inputs.package }}" == "cf-activity-logger" ]]; then
+            echo "FOLDER=Extension" >> $GITHUB_ENV
+            echo "ZIP_NAME=cf-activity-logger.zip" >> $GITHUB_ENV
+          elif [[ "${{ github.event.inputs.package }}" == "algo-push" ]]; then
+            echo "FOLDER=AlgoPush" >> $GITHUB_ENV
+            echo "ZIP_NAME=algo-push.zip" >> $GITHUB_ENV
+          else
+            echo "Unknown package: ${{ github.event.inputs.package }}"
+            exit 1
+          fi
+
+      - name: Create ZIP of selected package
         run: |
           mkdir -p release
-          cd Extension
-          zip -r ../release/codeforces-activity-extension.zip . -x "*.git*" "*.github*" "*.DS_Store"
+          cd $FOLDER
+          zip -r ../release/$ZIP_NAME . -x "*.git*" "*.github*" "*.DS_Store"
 
       - name: Create GitHub Release and Upload Asset
         id: create_release
@@ -34,6 +55,6 @@ jobs:
           tag_name: ${{ github.event.inputs.version }}
           name: ${{ github.event.inputs.version }}
           body: ${{ github.event.inputs.release_note }}
-          files: release/codeforces-activity-extension.zip
+          files: release/${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
