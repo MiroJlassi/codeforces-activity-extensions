@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitHub Settings</title>
+    <style>
+        body { font-family: Arial; padding: 10px; width: 250px; }
+        label { display: block; margin-top: 10px; }
+        input { width: 100%; padding: 5px; }
+        button { margin-top: 10px; width: 100%; padding: 7px; }
+    </style>
+</head>
+<body>
+    <h3>GitHub Config</h3>
+    <label>Token:</label>
+    <input type="text" id="token" placeholder="GitHub Token">
+    <label>Username:</label>
+    <input type="text" id="owner" placeholder="GitHub Username">
+    <label>Repository:</label>
+    <input type="text" id="repo" placeholder="Repo Name">
+    <label>Branch:</label>
+    <input type="text" id="branch" placeholder="Branch" value="main">
+    <button id="save">Save</button>
+
+    <script src="popup.js"></script>
+</body>
+</html>

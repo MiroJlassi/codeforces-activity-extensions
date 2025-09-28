@@ -1,13 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "Codeforces Handle Logger",
+  "name": "Codeforces File Grabber",
   "version": "1.0",
-  "description": "Displays your handle when you click Submit on Codeforces",
-  "permissions": ["activeTab", "scripting"],
+  "description": "Intercept file and push to GitHub",
+  "permissions": [
+    "downloads",
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Settings"
+  },
   "content_scripts": [
     {
-      "matches": ["https://codeforces.com/*"],
+      "matches": ["*://codeforces.com/*"],
       "js": ["content.js"]
     }
+  ],
+  "host_permissions": [
+    "*://codeforces.com/*"
   ]
 }
