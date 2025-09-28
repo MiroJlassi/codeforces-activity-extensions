@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Codeforces Handle Logger",
+  "version": "1.0",
+  "description": "Displays your handle when you click Submit on Codeforces",
+  "permissions": ["activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["https://codeforces.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
