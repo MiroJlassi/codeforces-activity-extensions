@@ -22,7 +22,7 @@ class ToastSystem {
         style.textContent = `
             .algopush-toast {
                 position: fixed;
-                bottom: 20px;
+                top: 20px;
                 right: 20px;
                 min-width: 250px;
                 max-width: 400px;
@@ -37,7 +37,7 @@ class ToastSystem {
                 line-height: 1.4;
                 z-index: 10000;
                 opacity: 0;
-                transform: translateY(30px) scale(0.9);
+                transform: translateY(-30px) scale(0.9);
                 transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 backdrop-filter: blur(10px);
                 border: 1px solid rgba(255, 255, 255, 0.2);
@@ -87,7 +87,7 @@ class ToastSystem {
 
             .algopush-toast-container {
                 position: fixed;
-                bottom: 20px;
+                top: 20px;
                 right: 20px;
                 z-index: 10000;
                 pointer-events: none;
@@ -95,9 +95,9 @@ class ToastSystem {
 
             .algopush-toast-container .algopush-toast {
                 position: relative;
-                bottom: auto;
+                top: auto;
                 right: auto;
-                margin-bottom: 10px;
+                margin-top: 10px;
                 pointer-events: auto;
             }
         `;

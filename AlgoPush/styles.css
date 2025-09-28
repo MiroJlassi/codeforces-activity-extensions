@@ -1,5 +1,11 @@
 /* AlgoPush Popup Styles */
 
+html {
+    width: 600px !important;
+    min-width: 600px !important;
+    max-width: 600px !important;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -8,7 +14,9 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    width: 380px;
+    width: 600px !important;
+    min-width: 600px !important;
+    max-width: 600px !important;
     min-height: 500px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
@@ -19,6 +27,9 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 500px;
+    width: 600px !important;
+    min-width: 600px !important;
+    max-width: 600px !important;
     background: #fff;
     margin: 0;
     border-radius: 0;
@@ -408,9 +419,23 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 400px) {
+@media (max-width: 650px) {
+    html {
+        width: 400px !important;
+        min-width: 400px !important;
+        max-width: 400px !important;
+    }
+    
     body {
-        width: 320px;
+        width: 400px !important;
+        min-width: 400px !important;
+        max-width: 400px !important;
+    }
+    
+    .container {
+        width: 400px !important;
+        min-width: 400px !important;
+        max-width: 400px !important;
     }
     
     .input-row {
