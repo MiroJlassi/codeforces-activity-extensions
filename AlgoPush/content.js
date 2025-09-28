@@ -1,162 +1,283 @@
-let storedFile = null;
+/**
+ * AlgoPush Chrome Extension - Main Content Script
+ * Automatically pushes Codeforces solutions to GitHub
+ */
 
-function init() {
-    const fileInput = document.querySelector("input[name='sourceFile']");
-    const submitButton = document.getElementById("sidebarSubmitButton");
+// Since Chrome extensions don't support ES6 modules in content scripts,
+// we'll use the global objects created by the other scripts
 
-    if (!fileInput || !submitButton) return;
+class AlgoPushManager {
+    constructor() {
+        this.fileHandler = new window.FileHandler();
+        this.githubAPI = new window.GitHubAPI();
+        this.isProcessing = false;
+        this.init();
+    }
 
-    // Step 1: Capture file selection
-    fileInput.addEventListener("change", (e) => {
-        storedFile = e.target.files[0];
-        if (storedFile) {
-            console.log("File selected:", storedFile.name);
+    async init() {
+        try {
+            await this.waitForPageLoad();
+            await this.waitForDependencies();
+            this.setupEventListeners();
+            this.setupFileHandler();
+            console.log('🚀 AlgoPush initialized successfully');
+            window.showInfo('AlgoPush is ready! 🚀', 2000);
+        } catch (error) {
+            console.error('Failed to initialize AlgoPush:', error);
+            window.showError(`Failed to initialize: ${window.formatErrorMessage(error)}`);
         }
-    });
+    }
 
-    // Step 2: Hook submit click
-    submitButton.addEventListener("click", async (e) => {
-        e.preventDefault(); // Prevent normal form submit
+    async waitForPageLoad() {
+        return new Promise((resolve) => {
+            if (document.readyState === 'complete') {
+                resolve();
+            } else {
+                window.addEventListener('load', resolve);
+            }
+        });
+    }
 
-        if (storedFile) {
-            try {
-                const content = await readFileContent(storedFile);
-                const params = await getGitHubParams();
+    async waitForDependencies() {
+        // Wait for all dependencies to be loaded
+        const maxWait = 5000; // 5 seconds
+        const checkInterval = 100; // 100ms
+        let waited = 0;
 
-                if (!params || !params.token) {
-                    console.error("GitHub params missing!");
+        return new Promise((resolve, reject) => {
+            const checkDependencies = () => {
+                if (window.FileHandler && window.GitHubAPI && window.showInfo && window.formatErrorMessage) {
+                    resolve();
                     return;
                 }
 
-                console.log("Pushing solution to GitHub...");
-                await pushToGitHub(content, storedFile.name, params);
+                waited += checkInterval;
+                if (waited >= maxWait) {
+                    reject(new Error('Dependencies failed to load'));
+                    return;
+                }
 
-                console.log("✅ Push complete. Submitting form...");
-                submitButton.closest("form").submit(); // Continue with normal submission
-            } catch (err) {
-                console.error("File read failed:", err);
+                setTimeout(checkDependencies, checkInterval);
+            };
+
+            checkDependencies();
+        });
+    }
+
+    setupEventListeners() {
+        const submitButton = document.querySelector(window.SELECTORS?.SUBMIT_BUTTON || "#sidebarSubmitButton");
+        if (!submitButton) {
+            console.warn('Submit button not found, AlgoPush may not work on this page');
+            return;
+        }
+
+        submitButton.addEventListener('click', this.handleSubmit.bind(this));
+        console.log('Submit button listener attached');
+    }
+
+    setupFileHandler() {
+        const fileInput = document.querySelector(window.SELECTORS?.FILE_INPUT || "input[name='sourceFile']");
+        if (!fileInput) {
+            console.warn('File input not found, AlgoPush may not work on this page');
+            return;
+        }
+
+        this.fileHandler.init(fileInput);
+
+        // Set up file handler callbacks
+        this.fileHandler.on('onFileSelected', (fileInfo) => {
+            console.log('File selected:', fileInfo);
+            this.onFileSelected(fileInfo);
+        });
+
+        this.fileHandler.on('onFileError', (error) => {
+            console.error('File error:', error);
+            window.showError(`File error: ${error}`);
+        });
+
+        console.log('File handler initialized');
+    }
+
+    onFileSelected(fileInfo) {
+        window.showSuccess(`📄 File ready: ${fileInfo.sanitizedName} (${fileInfo.formattedSize})`);
+        this.displayFileInfo(fileInfo);
+    }
+
+    displayFileInfo(fileInfo) {
+        // Create or update file info display
+        let infoDisplay = document.getElementById('algopush-file-info');
+        if (!infoDisplay) {
+            infoDisplay = this.createFileInfoDisplay();
+        }
+
+        infoDisplay.innerHTML = `
+            <div class="file-info-content">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <div class="file-name">${fileInfo.sanitizedName}</div>
+                    <div class="file-meta">${fileInfo.formattedSize} • ${fileInfo.type}</div>
+                </div>
+                <div class="file-status">✅</div>
+            </div>
+        `;
+    }
+
+    createFileInfoDisplay() {
+        const display = document.createElement('div');
+        display.id = 'algopush-file-info';
+        display.className = 'algopush-file-info';
+        
+        // Add styles
+        if (!document.getElementById('algopush-file-info-styles')) {
+            this.injectFileInfoStyles();
+        }
+
+        // Insert after file input
+        const fileInput = document.querySelector(window.SELECTORS?.FILE_INPUT || "input[name='sourceFile']");
+        if (fileInput && fileInput.parentNode) {
+            fileInput.parentNode.insertBefore(display, fileInput.nextSibling);
+        }
+
+        return display;
+    }
+
+    injectFileInfoStyles() {
+        const style = document.createElement('style');
+        style.id = 'algopush-file-info-styles';
+        style.textContent = `
+            .algopush-file-info {
+                margin: 10px 0;
+                padding: 12px;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                border-radius: 8px;
+                border: 1px solid #e1e8ed;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             }
+
+            .file-info-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .file-icon {
+                font-size: 24px;
+                opacity: 0.8;
+            }
+
+            .file-details {
+                flex: 1;
+            }
+
+            .file-name {
+                font-weight: 600;
+                color: #2c3e50;
+                margin-bottom: 2px;
+            }
+
+            .file-meta {
+                font-size: 12px;
+                color: #7f8c8d;
+            }
+
+            .file-status {
+                font-size: 18px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    async handleSubmit(event) {
+        event.preventDefault();
+
+        if (this.isProcessing) {
+            window.showInfo('Already processing, please wait...', 2000);
+            return;
         }
-    });
-}
 
-function readFileContent(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = (err) => reject(err);
-        reader.readAsText(file); // Reads file as text
-    });
-}
+        if (!this.fileHandler.hasFile()) {
+            // Let the original form submission happen
+            return;
+        }
 
-async function getGitHubParams() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(["token", "owner", "repo", "branch"], (data) => {
-            resolve({
-                token: data.token,
-                owner: data.owner,
-                repo: data.repo,
-                branch: data.branch || "main"
-            });
-        });
-    });
-}
+        this.isProcessing = true;
 
-function getProblemDetails() {
-    try {
-        const urlParts = window.location.pathname.split("/");
-        const contestId = urlParts[2]; // e.g., "2134"
-        const problemIndex = urlParts[4]; // e.g., "A"
+        try {
+            // Test GitHub connection first
+            window.showInfo('🔄 Testing GitHub connection...', 2000);
+            const connectionTest = await this.githubAPI.testConnection();
+            
+            if (!connectionTest.success) {
+                throw new Error(`GitHub connection failed: ${connectionTest.error}`);
+            }
 
-        const problemNameElement = document.querySelector(".problem-statement .title");
-        let problemName = problemNameElement ? problemNameElement.textContent.trim() : "";
+            window.showSuccess('✅ GitHub connection verified', 1500);
 
-        problemName = problemName.replace(/\s+/g, "_").replace(/[^\w\-]/g, ""); // sanitize
+            // Read file content
+            window.showInfo('📖 Reading file content...', 1500);
+            const content = await this.fileHandler.readFileContent();
+            
+            if (!content.trim()) {
+                throw new Error('File is empty');
+            }
 
-        return { contestId, problemIndex, problemName };
-    } catch (e) {
-        console.error("Failed to get problem details:", e);
-        return null;
+            // Push to GitHub
+            const fileInfo = this.fileHandler.getFileInfo();
+            await this.githubAPI.pushSolution(content, fileInfo.name);
+
+            // Submit the form
+            console.log('✅ Push complete. Submitting form...');
+            window.showSuccess('✅ Push complete! Submitting...', 2000);
+            
+            // Small delay to show success message
+            setTimeout(() => {
+                event.target.closest('form').submit();
+            }, 1000);
+
+        } catch (error) {
+            console.error('AlgoPush failed:', error);
+            window.showError(`AlgoPush failed: ${window.formatErrorMessage(error)}`, 5000);
+            
+            // Still submit the form even if GitHub push fails
+            setTimeout(() => {
+                event.target.closest('form').submit();
+            }, 2000);
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+
+    // Public methods for debugging
+    getFileInfo() {
+        return this.fileHandler.getFileInfo();
+    }
+
+    async testGitHub() {
+        return await this.githubAPI.testConnection();
+    }
+
+    getRateLimit() {
+        return this.githubAPI.getRateLimit();
     }
 }
 
-function getFileExtension(filename) {
-    const parts = filename.split(".");
-    return parts.length > 1 ? parts.pop() : "txt";
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.algoPush = new AlgoPushManager();
+    });
+} else {
+    window.algoPush = new AlgoPushManager();
 }
 
-async function pushToGitHub(content, filename, { token, owner, repo, branch }) {
-    try {
-        const details = getProblemDetails();
-        let path = filename;
-
-        if (details) {
-            path = `${details.contestId}/${details.problemIndex}_${details.problemName}.${getFileExtension(filename)}`;
+// Global error handler
+window.addEventListener('error', (event) => {
+    if (event.error && event.error.message && event.error.message.includes('AlgoPush')) {
+        console.error('AlgoPush global error:', event.error);
+        if (window.showError) {
+            window.showError('AlgoPush encountered an error. Check console for details.', 3000);
         }
-
-        console.log("GitHub path:", path);
-        console.log("GitHub repo:", `${owner}/${repo} on branch ${branch}`);
-
-        // 1. Get latest commit SHA
-        let ref = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-            headers: { Authorization: `token ${token}` }
-        }).then(r => r.json());
-
-        const latestCommitSha = ref.object.sha;
-
-        // 2. Get base tree SHA
-        let commit = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, {
-            headers: { Authorization: `token ${token}` }
-        }).then(r => r.json());
-
-        const baseTreeSha = commit.tree.sha;
-
-        // 3. Create blob
-        let blob = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
-            method: "POST",
-            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ content: btoa(content), encoding: "base64" })
-        }).then(r => r.json());
-
-        // 4. Create new tree
-        let newTree = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
-            method: "POST",
-            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                base_tree: baseTreeSha,
-                tree: [
-                    {
-                        path: path,
-                        mode: "100644",
-                        type: "blob",
-                        sha: blob.sha
-                    }
-                ]
-            })
-        }).then(r => r.json());
-
-        // 5. Create commit
-        let newCommit = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
-            method: "POST",
-            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: `Solution pushed: ${filename}`,
-                tree: newTree.sha,
-                parents: [latestCommitSha]
-            })
-        }).then(r => r.json());
-
-        // 6. Update branch ref
-        await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-            method: "PATCH",
-            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ sha: newCommit.sha })
-        });
-
-        console.log(`✅ Solution ${filename} pushed successfully!`);
-    } catch (err) {
-        console.error("GitHub push failed:", err);
     }
-}
+});
 
-window.addEventListener("load", init);
+console.log('AlgoPush content script loaded');
