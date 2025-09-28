@@ -16,11 +16,26 @@ function init() {
 
     // Step 2: Hook submit click
     submitButton.addEventListener("click", async (e) => {
+        e.preventDefault(); // Prevent normal form submit
+
         if (storedFile) {
-            const content = await readFileContent(storedFile);
-            const params = await getGitHubParams();
-            console.log("Pushing solution to GitHub...");
-            pushToGitHub(content, storedFile.name, params);
+            try {
+                const content = await readFileContent(storedFile);
+                const params = await getGitHubParams();
+
+                if (!params || !params.token) {
+                    console.error("GitHub params missing!");
+                    return;
+                }
+
+                console.log("Pushing solution to GitHub...");
+                await pushToGitHub(content, storedFile.name, params);
+
+                console.log("✅ Push complete. Submitting form...");
+                submitButton.closest("form").submit(); // Continue with normal submission
+            } catch (err) {
+                console.error("File read failed:", err);
+            }
         }
     });
 }
@@ -30,7 +45,7 @@ function readFileContent(file) {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
         reader.onerror = (err) => reject(err);
-        reader.readAsText(file);
+        reader.readAsText(file); // Reads file as text
     });
 }
 
@@ -47,59 +62,101 @@ async function getGitHubParams() {
     });
 }
 
-// Your old GitHub push function adapted
-async function pushToGitHub(content, filename, {token, owner, repo, branch}) {
-    const path = filename; // use original filename
+function getProblemDetails() {
+    try {
+        const urlParts = window.location.pathname.split("/");
+        const contestId = urlParts[2]; // e.g., "2134"
+        const problemIndex = urlParts[4]; // e.g., "A"
 
-    let ref = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-        headers: { Authorization: `token ${token}` }
-    }).then(r => r.json());
+        const problemNameElement = document.querySelector(".problem-statement .title");
+        let problemName = problemNameElement ? problemNameElement.textContent.trim() : "";
 
-    const latestCommitSha = ref.object.sha;
+        problemName = problemName.replace(/\s+/g, "_").replace(/[^\w\-]/g, ""); // sanitize
 
-    let commit = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, {
-        headers: { Authorization: `token ${token}` }
-    }).then(r => r.json());
+        return { contestId, problemIndex, problemName };
+    } catch (e) {
+        console.error("Failed to get problem details:", e);
+        return null;
+    }
+}
 
-    const baseTreeSha = commit.tree.sha;
+function getFileExtension(filename) {
+    const parts = filename.split(".");
+    return parts.length > 1 ? parts.pop() : "txt";
+}
 
-    let blob = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
-        method: "POST",
-        headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ content: content, encoding: "utf-8" })
-    }).then(r => r.json());
+async function pushToGitHub(content, filename, { token, owner, repo, branch }) {
+    try {
+        const details = getProblemDetails();
+        let path = filename;
 
-    let newTree = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
-        method: "POST",
-        headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-            base_tree: baseTreeSha,
-            tree: [{
-                path: path,
-                mode: "100644",
-                type: "blob",
-                sha: blob.sha
-            }]
-        })
-    }).then(r => r.json());
+        if (details) {
+            path = `${details.contestId}/${details.problemIndex}_${details.problemName}.${getFileExtension(filename)}`;
+        }
 
-    let newCommit = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
-        method: "POST",
-        headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-            message: `Solution pushed: ${filename}`,
-            tree: newTree.sha,
-            parents: [latestCommitSha]
-        })
-    }).then(r => r.json());
+        console.log("GitHub path:", path);
+        console.log("GitHub repo:", `${owner}/${repo} on branch ${branch}`);
 
-    await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-        method: "PATCH",
-        headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ sha: newCommit.sha })
-    });
+        // 1. Get latest commit SHA
+        let ref = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
+            headers: { Authorization: `token ${token}` }
+        }).then(r => r.json());
 
-    console.log(`✅ Solution ${filename} pushed successfully!`);
+        const latestCommitSha = ref.object.sha;
+
+        // 2. Get base tree SHA
+        let commit = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, {
+            headers: { Authorization: `token ${token}` }
+        }).then(r => r.json());
+
+        const baseTreeSha = commit.tree.sha;
+
+        // 3. Create blob
+        let blob = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
+            method: "POST",
+            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ content: btoa(content), encoding: "base64" })
+        }).then(r => r.json());
+
+        // 4. Create new tree
+        let newTree = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
+            method: "POST",
+            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                base_tree: baseTreeSha,
+                tree: [
+                    {
+                        path: path,
+                        mode: "100644",
+                        type: "blob",
+                        sha: blob.sha
+                    }
+                ]
+            })
+        }).then(r => r.json());
+
+        // 5. Create commit
+        let newCommit = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
+            method: "POST",
+            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: `Solution pushed: ${filename}`,
+                tree: newTree.sha,
+                parents: [latestCommitSha]
+            })
+        }).then(r => r.json());
+
+        // 6. Update branch ref
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
+            method: "PATCH",
+            headers: { Authorization: `token ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ sha: newCommit.sha })
+        });
+
+        console.log(`✅ Solution ${filename} pushed successfully!`);
+    } catch (err) {
+        console.error("GitHub push failed:", err);
+    }
 }
 
 window.addEventListener("load", init);
